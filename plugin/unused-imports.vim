@@ -33,27 +33,27 @@ function! s:highlight_unused_imports(remove)
   let startCol = col(".")
 
   let linenr = 0
-  " where does the class definition start (= where the imports end)
+  " Start searching from the start of the file
   call cursor(1, 1)
-  let classStartLine = search('\v(^\s*import\s+)@<!(<class>|<object>|<interface>|\@)')
 
-  while linenr < classStartLine
+  " Iterate through each line except the last
+  while linenr < line('$')
     let linenr += 1
     let line = getline(linenr)
     let lis = matchlist(line, '\v^\s*import\s+(\w+\.)+(\w+);?')
     if len(lis) > 0
       let s = lis[2]
-      let searchPattern = '\v(//.*)@<!<' . s . '>'
+      " Ignore import lines and only search for actual *uses* of the import
+      let searchPattern = '\v(//.*|^\s*import.*)@<!<' . s . '>'
 
-      " start searching from the class definition
-      call cursor(classStartLine, 1)
+      " start searching from the line immediately below the import
+      call cursor(linenr + 1, 1)
       let linefound = search(searchPattern, 'nW')
 
       if linefound == 0
         if a:remove
           exec linenr . 'd _'
           let linenr -= 1
-          let classStartLine -= 1
         else
           call add(s:matches_so_far, matchadd('unusedimport', '^' . line . '$'))
         endif
